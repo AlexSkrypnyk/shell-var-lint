@@ -1,0 +1,238 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * @file
+ * PHP CLI script to check if shell script variables are wrapped in ${VAR}.
+ *
+ * Environment variables:
+ * - SCRIPT_QUIET: Set to '1' to suppress verbose messages.
+ * - SCRIPT_RUN_SKIP: Set to '1' to skip running of the script. Useful when
+ *   unit-testing or requiring this file from other files.
+ *
+ * Usage:
+ * @code
+ * # Check if all variables are wrapped.
+ * php shell-var-lint <file>
+ *
+ * # Fix any unwrapped variables.
+ * php shell-var-lint <file> --fix
+ * @endcode
+ *
+ * phpcs:disable Drupal.Commenting.InlineComment.SpacingBefore
+ * phpcs:disable Drupal.Commenting.InlineComment.SpacingAfter
+ * phpcs:disable DrupalPractice.Commenting.CommentEmptyLine.SpacingAfter
+ */
+
+// @codeCoverageIgnoreStart
+/**
+ * Defines exit codes.
+ */
+define('EXIT_SUCCESS', 0);
+define('EXIT_ERROR', 1);
+
+/**
+ * Defines error level to be reported as an error.
+ */
+define('ERROR_LEVEL', E_USER_WARNING);
+
+// @codeCoverageIgnoreEnd
+
+/**
+ * Main functionality.
+ *
+ * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+ * @SuppressWarnings(PHPMD.NPathComplexity)
+ */
+function main(array $argv) {
+  $options = getopt('hf', ['help', 'fix']);
+
+  if (isset($options['h']) || isset($options['help']) || in_array('-?', $argv)) {
+    print_help();
+
+    return EXIT_SUCCESS;
+  }
+
+  $filename = $argv[1] ?? NULL;
+
+  if (empty($filename)) {
+    throw new \Exception('Please provide a file to check.');
+  }
+
+  if (!file_exists($filename)) {
+    throw new \Exception(sprintf('File "%s" does not exist.', $filename));
+  }
+
+  $should_replace = isset($options['f']) || isset($options['fix']) || in_array('-f', $argv) || in_array('--fix', $argv);
+
+  $lines = file($filename);
+
+  $updated_lines = [];
+  $should_fail = FALSE & !$should_replace;
+  $replace_count = 0;
+  foreach ($lines as $k => $line) {
+    $updated_line = process_line($line);
+
+    if ($updated_line != $line) {
+      if ($should_replace) {
+        verbose('Replaced in line %s: %s', $k, $line);
+        $line = $updated_line;
+        $replace_count++;
+      }
+      else {
+        verbose('%s: %s', $k, $line);
+        $should_fail = TRUE;
+      }
+    }
+
+    $updated_lines[] = $line;
+  }
+
+  if ($replace_count > 0 && $should_replace) {
+    file_put_contents($filename, implode('', $updated_lines));
+    verbose('Replaced %s variables in file "%s".', $replace_count, $filename);
+  }
+
+  return $should_fail ? EXIT_ERROR : EXIT_SUCCESS;
+}
+
+/**
+ * Process a line.
+ *
+ * @param string $line
+ *   The line to process.
+ *
+ * @return string
+ *   The processed line.
+ *
+ * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+ * @SuppressWarnings(PHPMD.NPathComplexity)
+ */
+function process_line(string $line): string {
+  if (empty($line)) {
+    return $line;
+  }
+
+  if (str_starts_with(trim($line), '#')) {
+    return $line;
+  }
+
+  $updated = '';
+  $inside_single_quotes = $escape_next = 0;
+  for ($i = 0, $n = strlen($line); $i < $n; ++$i) {
+    $char = $line[$i];
+    if ($escape_next) {
+      $updated .= $char;
+      $escape_next = 0;
+      continue;
+    }
+
+    if ($char === '\\') {
+      $escape_next = 1;
+    }
+
+    if ($char === "'") {
+      $inside_single_quotes ^= 1;
+    }
+
+    if (!$inside_single_quotes && !$escape_next && $char === '$' && ctype_alnum($line[$i + 1] ?? '')) {
+      $var = '';
+      for ($j = $i + 1; $j < $n && ctype_alnum($line[$j]); ++$j) {
+        $var .= $line[$j];
+      }
+      $updated .= '${' . $var . '}';
+      $i = $j - 1;
+    }
+    else {
+      $updated .= $char;
+    }
+  }
+
+  return $updated;
+}
+
+/**
+ * Print help.
+ */
+function print_help() {
+  $script_name = basename(__FILE__);
+  $out = <<<EOF
+Check if shell script variables are wrapped in \${} and fix violations.
+------------------------
+
+Arguments:
+  file                The file to check.
+
+Options:
+  --help              This help.
+  --fix               If the script should fix the variables in file.
+
+Examples:
+  php $script_name path/to/file
+
+EOF;
+  verbose($out);
+}
+
+// ////////////////////////////////////////////////////////////////////////// //
+//                                UTILITIES                                   //
+// ////////////////////////////////////////////////////////////////////////// //
+
+/**
+ * Show a verbose message.
+ */
+function verbose(string|null $string = NULL, ...$args): mixed {
+  $string = sprintf($string, ...$args);
+
+  static $output = [];
+  $output[] = $string;
+  if (empty(getenv('SCRIPT_QUIET'))) {
+    // @codeCoverageIgnoreStart
+    print end($output);
+    // @codeCoverageIgnoreEnd
+  }
+
+  return $output;
+}
+
+// ////////////////////////////////////////////////////////////////////////// //
+//                                ENTRYPOINT                                  //
+// ////////////////////////////////////////////////////////////////////////// //
+
+// @codeCoverageIgnoreStart
+ini_set('display_errors', 1);
+
+if (PHP_SAPI != 'cli' || !empty($_SERVER['REMOTE_ADDR'])) {
+  die('This script can be only ran from the command line.');
+}
+
+// Allow to skip the script run.
+if (getenv('SCRIPT_RUN_SKIP') != 1) {
+  // Custom error handler to catch errors based on set ERROR_LEVEL.
+  set_error_handler(function ($severity, $message, $file, $line) {
+    if (!(error_reporting() & $severity)) {
+      // This error code is not included in error_reporting.
+      return;
+    }
+    throw new ErrorException($message, 0, $severity, $file, $line);
+  });
+
+  try {
+    $code = main($argv);
+    if (is_null($code)) {
+      throw new \Exception('Script exited without providing an exit code.');
+    }
+    exit($code);
+  }
+  catch (\ErrorException $exception) {
+    if ($exception->getSeverity() <= ERROR_LEVEL) {
+      verbose(PHP_EOL . 'RUNTIME ERROR: ' . $exception->getMessage() . PHP_EOL);
+      exit($exception->getCode() == 0 ? EXIT_ERROR : $exception->getCode());
+    }
+  }
+  catch (\Exception $exception) {
+    verbose(PHP_EOL . 'ERROR: ' . $exception->getMessage() . PHP_EOL);
+    exit($exception->getCode() == 0 ? EXIT_ERROR : $exception->getCode());
+  }
+}
+// @codeCoverageIgnoreEnd
