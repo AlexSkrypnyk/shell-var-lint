@@ -182,6 +182,56 @@ class ShellVarLintUnitTest extends ScriptUnitTestBase {
       ['\'\$var\'', '\'\$var\''],
 
       ['${var:-"$other"}', '${var:-"${other}"}'],
+
+      // Contains underscore.
+      ['$var_longer_123', '${var_longer_123}'],
+      ['$VAR_LONGER_123', '${VAR_LONGER_123}'],
+      ['word $var_longer_123 word', 'word ${var_longer_123} word'],
+      ['word $VAR_LONGER_123 word', 'word ${VAR_LONGER_123} word'],
+
+      ['\$var_longer_123', '\$var_longer_123'],
+      ['\$VAR_LONGER_123', '\$VAR_LONGER_123'],
+      ['word \$var_longer_123 word', 'word \$var_longer_123 word'],
+      ['word \$VAR_LONGER_123 word', 'word \$VAR_LONGER_123 word'],
+
+      ['${var_longer_123}', '${var_longer_123}'],
+      ['${var_longer_123:-}', '${var_longer_123:-}'],
+
+      ['${var_longer_123:-$other}', '${var_longer_123:-${other}}'],
+      ['${var_longer_123:-${other}}', '${var_longer_123:-${other}}'],
+      ['${var_longer_123:-${other:-}}', '${var_longer_123:-${other:-}}'],
+
+      ['"$var_longer_123"', '"${var_longer_123}"'],
+      ['"\$var_longer_123"', '"\$var_longer_123"'],
+      ['\'$var_longer_123\'', '\'$var_longer_123\''],
+      ['\'\$var_longer_123\'', '\'\$var_longer_123\''],
+
+      ['${var_longer_123:-"$other"}', '${var_longer_123:-"${other}"}'],
+
+      // Starts with underscore.
+      ['$_var_longer_123', '${_var_longer_123}'],
+      ['$_VAR_LONGER_123', '${_VAR_LONGER_123}'],
+      ['word $_var_longer_123 word', 'word ${_var_longer_123} word'],
+      ['word $_VAR_LONGER_123 word', 'word ${_VAR_LONGER_123} word'],
+
+      ['\$_var_longer_123', '\$_var_longer_123'],
+      ['\$_VAR_LONGER_123', '\$_VAR_LONGER_123'],
+      ['word \$_var_longer_123 word', 'word \$_var_longer_123 word'],
+      ['word \$_VAR_LONGER_123 word', 'word \$_VAR_LONGER_123 word'],
+
+      ['${_var_longer_123}', '${_var_longer_123}'],
+      ['${_var_longer_123:-}', '${_var_longer_123:-}'],
+
+      ['${_var_longer_123:-$other}', '${_var_longer_123:-${other}}'],
+      ['${_var_longer_123:-${other}}', '${_var_longer_123:-${other}}'],
+      ['${_var_longer_123:-${other:-}}', '${_var_longer_123:-${other:-}}'],
+
+      ['"$_var_longer_123"', '"${_var_longer_123}"'],
+      ['"\$_var_longer_123"', '"\$_var_longer_123"'],
+      ['\'$_var_longer_123\'', '\'$_var_longer_123\''],
+      ['\'\$_var_longer_123\'', '\'\$_var_longer_123\''],
+
+      ['${_var_longer_123:-"$other"}', '${_var_longer_123:-"${other}"}'],
     ];
   }
 
