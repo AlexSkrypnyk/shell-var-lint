@@ -15,14 +15,17 @@
 ## Installation
 
 
-    composer require alexskrypnyk/shell-var-lint
+    composer require --dev alexskrypnyk/shell-var-lint
 
 
 
 ## Usage
 
+    # Lint file.
+    vendor/bin/shell-var-lint <file>
 
-    vendor/bin/shell-var-lint
+    # Fix file.
+    vendor/bin/shell-var-lint <file> --fix
 
 
 
