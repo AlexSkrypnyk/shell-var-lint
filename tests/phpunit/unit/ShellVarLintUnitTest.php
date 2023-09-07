@@ -86,6 +86,7 @@ class ShellVarLintUnitTest extends ScriptUnitTestBase {
    * @covers ::print_help
    * @covers ::verbose
    * @dataProvider dataProviderMainFunc
+   * @group main
    */
   public function testMainFunc(mixed $args = [], $expected_code = 0, $expected_output = [], $expected_exception_message = NULL, $should_fix = FALSE) {
     $file_before = NULL;
@@ -138,6 +139,7 @@ class ShellVarLintUnitTest extends ScriptUnitTestBase {
   /**
    * @covers       ::process_line
    * @dataProvider dataProviderProcessLine
+   * @group unit
    */
   public function testProcessLine($actual, $expected) {
     $this->assertEquals($expected, process_line($actual));
@@ -145,6 +147,8 @@ class ShellVarLintUnitTest extends ScriptUnitTestBase {
 
   /**
    * Data provider for testProcessLine().
+   *
+   * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
    */
   public static function dataProviderProcessLine(): array {
     return [
@@ -230,8 +234,93 @@ class ShellVarLintUnitTest extends ScriptUnitTestBase {
       ['"\$_var_longer_123"', '"\$_var_longer_123"'],
       ['\'$_var_longer_123\'', '\'$_var_longer_123\''],
       ['\'\$_var_longer_123\'', '\'\$_var_longer_123\''],
-
       ['${_var_longer_123:-"$other"}', '${_var_longer_123:-"${other}"}'],
+
+      // Quotes within quotes.
+      ['"\'$var\'"', '"\'${var}\'"'],
+      ['"word \'$var\' word"', '"word \'${var}\' word"'],
+      // And with escaped.
+      ['"\'\$var\'"', '"\'\$var\'"'],
+
+      ['string with $var1 "\'$var2\'" \'$var3\'', 'string with ${var1} "\'${var2}\'" \'$var3\''],
+      ['string with $var1 "\'\$var2\'" \'$var3\'', 'string with ${var1} "\'\$var2\'" \'$var3\''],
+
+      // Arrays.
+      ['${_var_longer_array[$_var_longer_key]}', '${_var_longer_array[${_var_longer_key}]}'],
+      ['${_var_longer_array["$_var_longer_key"]}', '${_var_longer_array["${_var_longer_key}"]}'],
+      ['"${_var_longer_array["$_var_longer_key"]}"', '"${_var_longer_array["${_var_longer_key}"]}"'],
+
+      ['echo "  \\$config[\'stage_file_proxy.settings\'][\'origin\'] = \'http://www.resistance-star-wars.com/\';"', 'echo "  \\$config[\'stage_file_proxy.settings\'][\'origin\'] = \'http://www.resistance-star-wars.com/\';"'],
+    ];
+  }
+
+  /**
+   * @covers      ::is_interpolation
+   * @dataProvider dataProviderIsInterpolation
+   * @group unit
+   */
+  public function testIsInterpolation($line, $expected) {
+    $pos = strpos($line, 'var');
+    $pos = $pos === FALSE ? 0 : $pos;
+    $this->assertEquals($expected, is_interpolation($line, $pos));
+  }
+
+  /**
+   * Data provider for testIsInterpolation().
+   */
+  public static function dataProviderIsInterpolation() {
+    return [
+      ['', FALSE],
+      ['var', TRUE],
+      [' var ', TRUE],
+      ['"var"', TRUE],
+      [' "var" ', TRUE],
+      [' " var " ', TRUE],
+      ['\'var\'', FALSE],
+      [' \'var\' ', FALSE],
+      [' \' var \' ', FALSE],
+      ['"\'var\'"', TRUE],
+      [' "\'var\'"', TRUE],
+      [' "\' var\'"', TRUE],
+      [' "\' var\'" ', TRUE],
+      [' "\' var\' " ', TRUE],
+      [' "\' var \' " ', TRUE],
+
+      ['\'"var"\'', TRUE],
+      [' \'"var"\'', TRUE],
+      [' \' "var"\'', TRUE],
+      [' \' " var"\'', TRUE],
+      [' \' " var" \'', TRUE],
+      [' \' " var" \' ', TRUE],
+      [' \' " other var" \' ', TRUE],
+
+      ['"other" \'"var"\'', TRUE],
+      [' "other" \'" var"\'', TRUE],
+      [' "other" \'" var "\'', TRUE],
+      [' "other " \'" var "\'', TRUE],
+      [' "other " \'  " var "\'', TRUE],
+      ['"other \'in single\'" \'"var"\'', TRUE],
+      ['"other \'  in single\' " \'"var"\'', TRUE],
+
+      ['"other"\'\'var\'', FALSE],
+      [' "other"\'\'var\'', FALSE],
+      [' "other" \'\'var\'', FALSE],
+      [' "other" \' \'var\'', FALSE],
+      [' "other" \' \' var\'', FALSE],
+      [' "other"\' \' var\'', FALSE],
+      ['"other"\'\'\'var\'', FALSE],
+      [' "other"\' \'\'var\'', FALSE],
+      ['"other \'quoted\' \'var\' "', TRUE],
+      ['"other \' quoted\' \'var\' "', TRUE],
+      [' "other \' quoted\' \'var\' "', TRUE],
+      [' " other \' quoted\' \'var\' "', TRUE],
+
+      // Broken, but starts with double.
+      ['\'single"other \'in single\'" \'"var"\'', TRUE],
+      // Broken, but unmatched double.
+      ['\'single"other \'in single\'" "\'var\'', TRUE],
+      // Broken - unmatched single.
+      ['\'single"other \'in single\'" \'var\'', FALSE],
     ];
   }
 
