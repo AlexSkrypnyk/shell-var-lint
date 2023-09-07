@@ -135,9 +135,9 @@ function process_line(string $line): string {
       $inside_single_quotes ^= 1;
     }
 
-    if (!$inside_single_quotes && !$escape_next && $char === '$' && ctype_alnum($line[$i + 1] ?? '')) {
+    if (!$inside_single_quotes && !$escape_next && $char === '$' && (ctype_alnum($line[$i + 1] ?? '') || $line[$i + 1] === '_')) {
       $var = '';
-      for ($j = $i + 1; $j < $n && ctype_alnum($line[$j]); ++$j) {
+      for ($j = $i + 1; $j < $n && (ctype_alnum($line[$j]) || $line[$j] === '_'); ++$j) {
         $var .= $line[$j];
       }
       $updated .= '${' . $var . '}';
