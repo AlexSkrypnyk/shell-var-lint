@@ -1,6 +1,11 @@
+# To ignore OS temporary files use global .gitignore
+# https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files#configuring-ignored-files-for-all-repositories-on-your-computer
+
 .build
-/vendor
-/composer.lock
 /.coverage-html
 /.phpunit.cache
 /.coverage-cobertura.xml
+/cobertura.xml
+/composer.lock
+/vendor
+/vendor-bin
