@@ -15,7 +15,7 @@
 >
     <testsuites>
         <testsuite name="default">
-            <directory>tests/phpunit/unit</directory>
+            <directory>tests/phpunit</directory>
         </testsuite>
     </testsuites>
 
@@ -31,7 +31,7 @@
               disableCodeCoverageIgnore="false">
         <report>
             <html outputDirectory=".coverage-html" lowUpperBound="50" highLowerBound="90"/>
-            <cobertura outputFile=".coverage-cobertura.xml"/>
+            <cobertura outputFile="cobertura.xml"/>
         </report>
     </coverage>
 </phpunit>

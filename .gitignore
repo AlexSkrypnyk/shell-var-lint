@@ -4,8 +4,6 @@
 .build
 /.coverage-html
 /.phpunit.cache
-/.coverage-cobertura.xml
 /cobertura.xml
 /composer.lock
 /vendor
-/vendor-bin

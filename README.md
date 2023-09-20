@@ -1,8 +1,6 @@
-
-
 <p align="center">
   <a href="" rel="noopener">
- <img width=200px height=200px src="https://i.imgur.com/6wj0hh6.jpg" alt="Project logo"></a>
+  <img width=200px height=200px src="https://placehold.jp/000000/ffffff/200x200.png?text=Shell%20var%20lint&css=%7B%22border-radius%22%3A%22%20100px%22%7D" alt="Project logo"></a>
 </p>
 
 <h1 align="center">shell-var-lint</h1>
@@ -20,11 +18,14 @@
 
 ---
 
+<p align="center"> Lint and fix shell vars to ${VAR} format.
+    <br>
+</p>
+
 ## Features
 
-- Your first feature as a list item
-- Your second feature as a list item
-- Your third feature as a list item
+- Report on shell variables that are not in `${VAR}` format.
+- Fix shell variables that are not in `${VAR}` format.
 
 ## Installation
 
@@ -34,7 +35,6 @@
 
 
 ## Usage
-
 
     # Lint file.
     vendor/bin/shell-var-lint <file>

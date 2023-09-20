@@ -26,9 +26,9 @@
         "phpstan/phpstan": "^1.10"
     },
     "autoload-dev": {
-        "classmap": [
-            "tests/phpunit/unit"
-        ]
+        "psr-4": {
+            "AlexSkrypnyk\\ShellVarLint\\Tests\\": "tests/phpunit"
+        }
     },
     "config": {
         "allow-plugins": {
@@ -37,9 +37,11 @@
     },
     "scripts": {
         "lint": [
+            "cp shell-var-lint shell-var-lint.php",
             "phpcs",
-            "phpmd --exclude vendor,node_modules . text phpmd.xml",
-            "phpstan"
+            "phpmd --exclude vendor,vendor-bin,node_modules . text phpmd.xml",
+            "phpstan",
+            "rm shell-var-lint.php"
         ],
         "lint:fix": "phpcbf",
         "test": "phpunit --no-coverage",

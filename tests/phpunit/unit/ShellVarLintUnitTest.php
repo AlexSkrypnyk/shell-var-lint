@@ -1,6 +1,6 @@
 <?php
 
-namespace AlexSkrypnyk\ShellWrapVariables\Tests\Unit;
+namespace AlexSkrypnyk\ShellVarLint\Tests\Unit;
 
 /**
  * Class ShellVarLintUnitTest.
@@ -9,7 +9,7 @@ namespace AlexSkrypnyk\ShellWrapVariables\Tests\Unit;
  *
  * @group scripts
  */
-class ShellVarLintUnitTest extends ScriptUnitTestBase {
+class ShellVarLintUnitTest extends ScriptUnitTestCase {
 
   /**
    * Array of fixtures.
@@ -22,73 +22,15 @@ class ShellVarLintUnitTest extends ScriptUnitTestBase {
   ];
 
   /**
-   * {@inheritdoc}
-   */
-  protected $script = 'shell-var-lint';
-
-  /**
-   * Test main() method.
-   *
-   * @covers ::main
-   * @covers ::print_help
-   * @covers ::verbose
-   * @dataProvider dataProviderMain
-   */
-  public function testMain($args, $expected_code, $expected_output) {
-    $args = is_array($args) ? $args : [$args];
-    $result = $this->runScript($args, TRUE);
-    $this->assertEquals($expected_code, $result['code']);
-    $this->assertStringContainsString($expected_output, $result['output']);
-  }
-
-  /**
-   * Data provider for testMain().
-   */
-  public static function dataProviderMain() {
-    return [
-      [
-        '--help',
-        static::EXIT_SUCCESS,
-        'Check if shell script variables are wrapped in ${} and fix violations.',
-      ],
-      [
-        '-help',
-        static::EXIT_SUCCESS,
-        'Check if shell script variables are wrapped in ${} and fix violations.',
-      ],
-      [
-        '-h',
-        static::EXIT_SUCCESS,
-        'Check if shell script variables are wrapped in ${} and fix violations.',
-      ],
-      [
-        '-?',
-        static::EXIT_SUCCESS,
-        'Check if shell script variables are wrapped in ${} and fix violations.',
-      ],
-      [
-        [],
-        static::EXIT_ERROR,
-        'Please provide a file to check.',
-      ],
-      [
-        ['somefile', 2, 3],
-        static::EXIT_ERROR,
-        'ERROR: File "somefile" does not exist.',
-      ],
-    ];
-  }
-
-  /**
    * Test checking.
    *
    * @covers ::main
    * @covers ::print_help
    * @covers ::verbose
-   * @dataProvider dataProviderMainFunc
+   * @dataProvider dataProviderMain
    * @group main
    */
-  public function testMainFunc(mixed $args = [], $expected_code = 0, $expected_output = [], $expected_exception_message = NULL, $should_fix = FALSE) {
+  public function testMain(string|array $args = [], array|string $expected_output = [], string|null $expected_exception_message = NULL, bool $should_fix = FALSE): void {
     $file_before = NULL;
     $file_after = NULL;
     if (is_array($args) && count($args) > 0) {
@@ -103,11 +45,11 @@ class ShellVarLintUnitTest extends ScriptUnitTestBase {
       $this->expectExceptionMessage($expected_exception_message);
     }
 
-    $result = $this->runMain($args);
+    $output = $this->runMain($args);
 
-    $this->assertEquals($expected_code, $result['code']);
+    $expected_output = is_array($expected_output) ? $expected_output : [$expected_output];
     foreach ($expected_output as $expected_output_string) {
-      $this->assertArrayContainsString($expected_output_string, $result['output']);
+      $this->assertArrayContainsString($expected_output_string, $output);
     }
 
     if ($file_before && $file_after) {
@@ -121,18 +63,18 @@ class ShellVarLintUnitTest extends ScriptUnitTestBase {
   }
 
   /**
-   * Data provider for testMainFunc().
+   * Data provider for testMain().
    */
-  public static function dataProviderMainFunc() {
+  public static function dataProviderMain(): array {
     return [
-      ['-?', static::EXIT_SUCCESS, 'Check if shell script variables are wrapped in ${} and fix violations.'],
-      [NULL, static::EXIT_ERROR, NULL, 'Please provide a file to check.'],
-      [NULL, static::EXIT_ERROR, NULL, 'Please provide a file to check.'],
-      ['non-existing', static::EXIT_ERROR, NULL, 'File "non-existing" does not exist.'],
-      [[static::$fixtureFiles['valid']], static::EXIT_SUCCESS],
-      [[static::$fixtureFiles['valid'], '--fix'], static::EXIT_SUCCESS],
-      [[static::$fixtureFiles['invalid'], '--fix'], static::EXIT_SUCCESS, ['Replaced 3 variables in file'], NULL, TRUE],
-      [[static::$fixtureFiles['invalid']], static::EXIT_ERROR, ['10: var=$VAR1', '11: var="$VAR2"', '13: var=$VAR3'], NULL, FALSE],
+      ['-?', 'Check if shell script variables are wrapped in ${} and fix violations.'],
+      [[], [], 'Please provide a file to check.'],
+      [[], [], 'Please provide a file to check.'],
+      ['non-existing', [], 'Unable to read file "non-existing".'],
+      [[static::$fixtureFiles['valid']]],
+      [[static::$fixtureFiles['valid'], '--fix']],
+      [[static::$fixtureFiles['invalid'], '--fix'], ['Replaced 3 variables in file'], NULL, TRUE],
+      [[static::$fixtureFiles['invalid']], ['10: var=$VAR1', '11: var="$VAR2"', '13: var=$VAR3'], 'Found 3 variables in file', FALSE],
     ];
   }
 
@@ -141,7 +83,7 @@ class ShellVarLintUnitTest extends ScriptUnitTestBase {
    * @dataProvider dataProviderProcessLine
    * @group unit
    */
-  public function testProcessLine($actual, $expected) {
+  public function testProcessLine(string $actual, string $expected): void {
     $this->assertEquals($expected, process_line($actual));
   }
 
@@ -259,7 +201,7 @@ class ShellVarLintUnitTest extends ScriptUnitTestBase {
    * @dataProvider dataProviderIsInterpolation
    * @group unit
    */
-  public function testIsInterpolation($line, $expected) {
+  public function testIsInterpolation(string $line, bool $expected): void {
     $pos = strpos($line, 'var');
     $pos = $pos === FALSE ? 0 : $pos;
     $this->assertEquals($expected, is_interpolation($line, $pos));
@@ -268,7 +210,7 @@ class ShellVarLintUnitTest extends ScriptUnitTestBase {
   /**
    * Data provider for testIsInterpolation().
    */
-  public static function dataProviderIsInterpolation() {
+  public static function dataProviderIsInterpolation(): array {
     return [
       ['', FALSE],
       ['var', TRUE],
