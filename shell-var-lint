@@ -24,33 +24,26 @@
  * phpcs:disable DrupalPractice.Commenting.CommentEmptyLine.SpacingAfter
  */
 
-// @codeCoverageIgnoreStart
-/**
- * Defines exit codes.
- */
-define('EXIT_SUCCESS', 0);
-define('EXIT_ERROR', 1);
-
-/**
- * Defines error level to be reported as an error.
- */
-define('ERROR_LEVEL', E_USER_WARNING);
-
-// @codeCoverageIgnoreEnd
-
 /**
  * Main functionality.
  *
+ * @param array<string> $argv
+ *   Array of arguments.
+ * @param int $argc
+ *   Number of arguments.
+ *
+ * @throws \Exception
  * @SuppressWarnings(PHPMD.CyclomaticComplexity)
  * @SuppressWarnings(PHPMD.NPathComplexity)
+ * @SuppressWarnings(PHPMD.UnusedFormalParameter)
  */
-function main(array $argv) {
+function main(array $argv, int $argc): void {
   $options = getopt('hf', ['help', 'fix']);
 
   if (isset($options['h']) || isset($options['help']) || in_array('-?', $argv)) {
     print_help();
 
-    return EXIT_SUCCESS;
+    return;
   }
 
   $filename = $argv[1] ?? NULL;
@@ -59,17 +52,16 @@ function main(array $argv) {
     throw new \Exception('Please provide a file to check.');
   }
 
-  if (!file_exists($filename)) {
-    throw new \Exception(sprintf('File "%s" does not exist.', $filename));
+  $lines = @file($filename);
+  if ($lines === FALSE) {
+    throw new \Exception(sprintf('Unable to read file "%s".', $filename));
   }
 
   $should_replace = isset($options['f']) || isset($options['fix']) || in_array('-f', $argv) || in_array('--fix', $argv);
 
-  $lines = file($filename);
-
-  $updated_lines = [];
+  $processed_lines = [];
   $should_fail = FALSE & !$should_replace;
-  $replace_count = 0;
+  $changed_count = 0;
   foreach ($lines as $k => $line) {
     $updated_line = process_line($line);
 
@@ -77,23 +69,25 @@ function main(array $argv) {
       if ($should_replace) {
         verbose('Replaced in line %s: %s', $k, $line);
         $line = $updated_line;
-        $replace_count++;
       }
       else {
         verbose('%s: %s', $k, $line);
         $should_fail = TRUE;
       }
+      $changed_count++;
     }
 
-    $updated_lines[] = $line;
+    $processed_lines[] = $line;
   }
 
-  if ($replace_count > 0 && $should_replace) {
-    file_put_contents($filename, implode('', $updated_lines));
-    verbose('Replaced %s variables in file "%s".', $replace_count, $filename);
+  if ($changed_count > 0 && $should_replace) {
+    file_put_contents($filename, implode('', $processed_lines));
+    verbose('Replaced %s variables in file "%s".', $changed_count, $filename);
   }
 
-  return $should_fail ? EXIT_ERROR : EXIT_SUCCESS;
+  if ($should_fail) {
+    throw new \Exception(sprintf('Found %s variables in file "%s" that are not wrapped in ${}.', $changed_count, $filename));
+  }
 }
 
 /**
@@ -107,6 +101,7 @@ function main(array $argv) {
  *
  * @SuppressWarnings(PHPMD.CyclomaticComplexity)
  * @SuppressWarnings(PHPMD.NPathComplexity)
+ * @SuppressWarnings(PHPMD.UnusedLocalVariable)
  */
 function process_line(string $line): string {
   if (empty($line)) {
@@ -118,19 +113,19 @@ function process_line(string $line): string {
   }
 
   // Find and replace non-escaped variables.
-  $line = preg_replace_callback('/(?<!\\\\)\$[a-zA-Z_][a-zA-Z0-9_]*/', function ($matches) use ($line) {
+  $updated_line = preg_replace_callback('/(?<!\\\\)\$[a-zA-Z_][a-zA-Z0-9_]*/', function ($matches) use ($line) {
     $value = $matches[0][0];
     $pos = $matches[0][1];
 
     // Only replace within interpolation context.
-    if (is_interpolation($line, $pos)) {
+    if (is_numeric($pos) && is_interpolation($line, (int) $pos)) {
       $value = '${' . substr($value, 1) . '}';
     }
 
     return $value;
   }, $line, -1, $count, PREG_OFFSET_CAPTURE);
 
-  return $line;
+  return $updated_line ?: $line;
 }
 
 /**
@@ -146,6 +141,8 @@ function process_line(string $line): string {
  *
  * @return bool
  *   TRUE if the line at position is within interpolation context.
+ *
+ * @SuppressWarnings(PHPMD.CyclomaticComplexity)
  */
 function is_interpolation(string $line, int $pos): bool {
   // Normalize position.
@@ -199,11 +196,10 @@ function is_interpolation(string $line, int $pos): bool {
   return TRUE;
 }
 
-
 /**
  * Print help.
  */
-function print_help() {
+function print_help(): void {
   $script_name = basename(__FILE__);
   $out = <<<EOF
 Check if shell script variables are wrapped in \${} and fix violations.
@@ -223,31 +219,34 @@ EOF;
   verbose($out);
 }
 
-// ////////////////////////////////////////////////////////////////////////// //
-//                                UTILITIES                                   //
-// ////////////////////////////////////////////////////////////////////////// //
 
 /**
- * Show a verbose message.
+ * Show a verbose message and record messages into internal buffer.
+ *
+ * @param string $string
+ *   Message to print.
+ * @param bool|float|int|string|null ...$args
+ *   Arguments to sprintf() the message.
+ *
+ * @return array<string>
+ *   Array of messages.
  */
-function verbose(string|null $string = NULL, ...$args): mixed {
+function verbose(string $string, ...$args): array {
   $string = sprintf($string, ...$args);
 
-  static $output = [];
-  $output[] = $string;
+  static $buffer = [];
+  $buffer[] = $string;
   if (empty(getenv('SCRIPT_QUIET'))) {
     // @codeCoverageIgnoreStart
-    print end($output);
+    print end($buffer);
     // @codeCoverageIgnoreEnd
   }
 
-  return $output;
+  return $buffer;
 }
 
-// ////////////////////////////////////////////////////////////////////////// //
-//                                ENTRYPOINT                                  //
-// ////////////////////////////////////////////////////////////////////////// //
-
+// Entrypoint.
+//
 // @codeCoverageIgnoreStart
 ini_set('display_errors', 1);
 
@@ -257,31 +256,28 @@ if (PHP_SAPI != 'cli' || !empty($_SERVER['REMOTE_ADDR'])) {
 
 // Allow to skip the script run.
 if (getenv('SCRIPT_RUN_SKIP') != 1) {
-  // Custom error handler to catch errors based on set ERROR_LEVEL.
-  set_error_handler(function ($severity, $message, $file, $line) {
+  set_error_handler(function (int $severity, string $message, string $file, int $line): bool {
     if (!(error_reporting() & $severity)) {
-      // This error code is not included in error_reporting.
-      return;
+      // This error code is not included in error_reporting - continue
+      // execution with the normal error handler.
+      return FALSE;
     }
     throw new ErrorException($message, 0, $severity, $file, $line);
   });
 
   try {
-    $code = main($argv);
-    if (is_null($code)) {
-      throw new \Exception('Script exited without providing an exit code.');
-    }
-    exit($code);
+    // The function should not provide an exit code but rather throw exceptions.
+    main($argv, $argc);
   }
   catch (\ErrorException $exception) {
-    if ($exception->getSeverity() <= ERROR_LEVEL) {
+    if ($exception->getSeverity() <= E_USER_WARNING) {
       verbose(PHP_EOL . 'RUNTIME ERROR: ' . $exception->getMessage() . PHP_EOL);
-      exit($exception->getCode() == 0 ? EXIT_ERROR : $exception->getCode());
+      exit($exception->getCode() == 0 ? 1 : $exception->getCode());
     }
   }
   catch (\Exception $exception) {
     verbose(PHP_EOL . 'ERROR: ' . $exception->getMessage() . PHP_EOL);
-    exit($exception->getCode() == 0 ? EXIT_ERROR : $exception->getCode());
+    exit($exception->getCode() == 0 ? 1 : $exception->getCode());
   }
 }
 // @codeCoverageIgnoreEnd
