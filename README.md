@@ -10,7 +10,7 @@
   [![GitHub Issues](https://img.shields.io/github/issues/AlexSkrypnyk/shell-var-lint.svg)](https://github.com/AlexSkrypnyk/shell-var-lint/issues)
   [![GitHub Pull Requests](https://img.shields.io/github/issues-pr/AlexSkrypnyk/shell-var-lint.svg)](https://github.com/AlexSkrypnyk/shell-var-lint/pulls)
   [![Test](https://github.com/AlexSkrypnyk/shell-var-lint/actions/workflows/test.yml/badge.svg)](https://github.com/AlexSkrypnyk/shell-var-lint/actions/workflows/test.yml)
-  ![Coverage](https://github.com/AlexSkrypnyk/shell-var-lint/blob/_xml_coverage_reports/data/main/badge.svg)
+  [![codecov](https://codecov.io/gh/AlexSkrypnyk/shell-var-lint/graph/badge.svg?token=OAERD0PS3T)](https://codecov.io/gh/AlexSkrypnyk/shell-var-lint)
   ![GitHub release (latest by date)](https://img.shields.io/github/v/release/AlexSkrypnyk/shell-var-lint)
   ![LICENSE](https://img.shields.io/github/license/AlexSkrypnyk/shell-var-lint)
 
