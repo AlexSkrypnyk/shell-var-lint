@@ -19,6 +19,7 @@ jobs:
         path: /tmp/composer-cache
         key: ${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
     - uses: php-actions/composer@v6
+    - run: php -v
     - run: composer lint
     - run: composer test:coverage
     - uses: codecov/codecov-action@v3
