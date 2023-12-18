@@ -13,6 +13,7 @@
   [![codecov](https://codecov.io/gh/AlexSkrypnyk/shell-var-lint/graph/badge.svg?token=OAERD0PS3T)](https://codecov.io/gh/AlexSkrypnyk/shell-var-lint)
   ![GitHub release (latest by date)](https://img.shields.io/github/v/release/AlexSkrypnyk/shell-var-lint)
   ![LICENSE](https://img.shields.io/github/license/AlexSkrypnyk/shell-var-lint)
+  ![Renovate](https://img.shields.io/badge/renovate-enabled-green?logo=renovatebot)
 
 </div>
 
