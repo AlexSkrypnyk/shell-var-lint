@@ -18,7 +18,7 @@
 
 ---
 
-<p align="center"> Lint and fix shell vars to `${VAR}` format.
+<p align="center"> Lint and fix shell vars to <code>${VAR}</code> format.
     <br>
 </p>
 
